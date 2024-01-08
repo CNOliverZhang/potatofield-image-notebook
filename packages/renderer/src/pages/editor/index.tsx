@@ -43,17 +43,18 @@ const Editor: React.FC = (props) => {
   const storage = Storage();
   const theme = useTheme();
   const classes = createUseStyles(styles)({ theme });
-  const { darkMode } = useThemeContext();
 
   const [isWindows] = useState(getIsWindows());
   const [id, setId] = useState(
     new URLSearchParams(window.location.hash.split('?').pop()).get('id'),
   );
   const [imageLoading, setImageLoading] = useState(false);
+  const [currentTag, setCurrentTag] = useState<Tag>();
   const canvasSelect = useRef<CanvasSelect>();
   const idRef = useRef(id);
 
   const noteForm = useForm<Note>();
+  const tagContentForm = useForm<Tag>();
 
   const uploadImage = async (e: ChangeEvent<HTMLInputElement>) => {
     const { files } = e.target;
@@ -163,8 +164,13 @@ const Editor: React.FC = (props) => {
         canvas.setData(note.tags);
       }
     }
+    canvas.on('select', (tag) => setCurrentTag(tag));
     canvas.on('updated', (data) => noteForm.setValue('tags', data, { shouldDirty: true }));
   }, []);
+
+  useEffect(() => {
+    tagContentForm.reset(currentTag);
+  }, [currentTag]);
 
   useEffect(() => {
     idRef.current = id;
@@ -223,7 +229,7 @@ const Editor: React.FC = (props) => {
               defaultValue=""
               control={noteForm.control}
               render={({ field }) => (
-                <TextField label="标记内容" placeholder="标记内容" size="small" {...field} />
+                <TextField label="笔记简介" placeholder="笔记简介" size="small" {...field} />
               )}
             />
             <div className="button-group">
@@ -267,7 +273,24 @@ const Editor: React.FC = (props) => {
               </Button>
             </div>
           </div>
-          <div className="preview-wrapper" />
+          <div className="preview-wrapper">
+            <Controller
+              name="label"
+              defaultValue=""
+              control={tagContentForm.control}
+              render={({ field }) => (
+                <TextField label="标记主题" placeholder="标记主题" size="small" {...field} />
+              )}
+            />
+            <Controller
+              name="data"
+              defaultValue=""
+              control={tagContentForm.control}
+              render={({ field }) => (
+                <TextField label="标记内容" placeholder="标记内容" size="small" {...field} />
+              )}
+            />
+          </div>
         </div>
       </div>
     </AppWrappper>
