@@ -18,6 +18,7 @@ interface Note {
   id: string;
   title: string;
   desc: string;
+  image: string;
   tags: Tag[];
   createTime: Date;
   updateTime: Date;

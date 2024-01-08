@@ -14,10 +14,13 @@ export default (theme: Theme) => ({
       flexDirection: 'column',
       padding: theme.spacing(2),
 
-      '& .vditor': {
+      '& .canvas': {
         height: 0,
         flexGrow: 1,
+        borderRadius: theme.shape.borderRadius,
         marginTop: theme.spacing(2),
+        backgroundColor: theme.palette.text.secondary,
+        overflow: 'hidden',
       },
 
       '&.app-wrapper-padding': {
@@ -57,6 +60,17 @@ export default (theme: Theme) => ({
         flexGrow: 1,
         overflowY: 'auto',
         padding: theme.spacing(2),
+      },
+
+      '& .input': {
+        clip: 'rect(0 0 0 0)',
+        clipPath: 'inset(50%)',
+        overflow: 'hidden',
+        position: 'absolute',
+        top: 0,
+        width: '100%',
+        left: 0,
+        height: '100%',
       },
 
       '& .button-group': {

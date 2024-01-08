@@ -9,8 +9,8 @@ import axios from 'axios';
 import styles from './styles';
 
 interface NoteEditor {
-  data: Tag[];
-  img: string;
+  canvasSelect: CanvasSelect;
+  elementId: string;
 }
 
 const Editor: React.FC<NoteEditor> = (props) => {
@@ -22,16 +22,12 @@ const Editor: React.FC<NoteEditor> = (props) => {
   const canvasSelect = useRef<CanvasSelect>();
 
   useEffect(() => {
-    canvasSelect.current = new CanvasSelect('#canvas');
-    canvasSelect.current!.createType = 1;
-    canvasSelect.current?.setData(props.data);
-  }, []);
+    if (props.canvasSelect) {
+      props.canvasSelect.createType = 1;
+    }
+  }, [props.canvasSelect]);
 
-  useEffect(() => {
-    canvasSelect.current?.setImage(props.img);
-  }, [props.img]);
-
-  return <canvas id="canvas" className={classes.container} />;
+  return <canvas id={props.elementId} className={classes.container} />;
 };
 
 export default Editor;

@@ -41,7 +41,7 @@ const SelectableNoteList: React.FC<SelectableNoteListProps> = (props) => {
       title: '操作确认',
       content: '确定删除文章吗？',
       onConfirm: () => {
-        storage.notes.removeArticle(noteId);
+        storage.notes.removeNote(noteId);
       },
     });
   };

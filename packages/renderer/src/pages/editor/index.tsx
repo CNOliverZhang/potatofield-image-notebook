@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 import moment from 'moment';
 import fs from 'fs';
 import { clipboard, ipcRenderer } from 'electron';
@@ -15,6 +15,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
+import { LoadingButton } from '@mui/lab';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faTrashCan as DeleteIcon,
@@ -22,17 +23,15 @@ import {
   faFilePdf as PdfIcon,
   faImage as ImageIcon,
 } from '@fortawesome/free-solid-svg-icons';
-import { faMarkdown as MarkdownIcon } from '@fortawesome/free-brands-svg-icons';
 
 import useThemeContext from '@/contexts/theme';
 import AppWrappper from '@/components/app-wrappper';
 import NoteEditor from '@/components/note-editor';
-import DropdownPanel from '@/components/dropdown-panel';
 import Message from '@/imperative-components/message';
 import Dialog from '@/imperative-components/dialog';
 import Loading from '@/imperative-components/loading';
 import Upload from '@/utils/upload';
-import { closeWindow } from '@/utils/window';
+import { closeWindow, openWindow } from '@/utils/window';
 import { changeUrlParams } from '@/utils/url';
 import { isWindows as getIsWindows } from '@/utils/platform';
 import Storage from '@/store';
@@ -50,17 +49,61 @@ const Editor: React.FC = (props) => {
   const [id, setId] = useState(
     new URLSearchParams(window.location.hash.split('?').pop()).get('id'),
   );
+  const [imageLoading, setImageLoading] = useState(false);
   const canvasSelect = useRef<CanvasSelect>();
   const idRef = useRef(id);
 
   const noteForm = useForm<Note>();
+
+  const uploadImage = async (e: ChangeEvent<HTMLInputElement>) => {
+    const { files } = e.target;
+    if (files) {
+      let filepath = files[0].path;
+      if (storage.settings.getUploadCompress()) {
+        filepath = await compressImage(filepath, storage.settings.getUploadCompressQuality());
+      }
+      const uploadConfig = storage.settings.getUploadTarget();
+      if (!uploadConfig) {
+        new Dialog({
+          title: '上传失败',
+          content: '未填写图片上传配置，请前往设置页面填写。',
+          showCancel: false,
+          onConfirm: () => {
+            openWindow({
+              title: '设置',
+              path: '/settings',
+              width: 600,
+              height: 400,
+              resizable: false,
+            });
+          },
+        });
+      }
+      setImageLoading(true);
+      const uploadFunction = Upload[storage.settings.getUploadTarget()].upload;
+      try {
+        const url = await uploadFunction(filepath);
+        noteForm.setValue('image', url, { shouldDirty: true });
+      } catch (err) {
+        new Dialog({
+          title: '上传失败',
+          content: (err as Error).message,
+          showCancel: false,
+        });
+      } finally {
+        if (filepath !== files[0].path) {
+          fs.rmSync(filepath);
+        }
+        setImageLoading(false);
+      }
+    }
+  };
 
   const saveAsNew = () => {
     const newId = uuid();
     const note: Note = {
       ...noteForm.getValues(),
       id: newId,
-      data: canvasSelect.current?.dataset || [],
       createTime: new Date(),
       updateTime: new Date(),
     };
@@ -74,7 +117,6 @@ const Editor: React.FC = (props) => {
     if (idRef.current) {
       const note: Note = {
         ...noteForm.getValues(),
-        data: canvasSelect.current?.dataset || [],
         updateTime: new Date(),
       };
       storage.notes.updateNote(idRef.current, note);
@@ -108,6 +150,23 @@ const Editor: React.FC = (props) => {
   });
 
   useEffect(() => {
+    canvasSelect.current?.setImage(noteForm.getValues().image);
+  }, [noteForm.watch('image')]);
+
+  useEffect(() => {
+    const canvas = new CanvasSelect('canvas');
+    canvasSelect.current = canvas;
+    if (idRef.current) {
+      const note = storage.notes.getNoteList().find((item) => item.id === idRef.current);
+      if (note) {
+        noteForm.reset(note);
+        canvas.setData(note.tags);
+      }
+    }
+    canvas.on('updated', (data) => noteForm.setValue('tags', data, { shouldDirty: true }));
+  }, []);
+
+  useEffect(() => {
     idRef.current = id;
   }, [id]);
 
@@ -123,7 +182,9 @@ const Editor: React.FC = (props) => {
               <TextField label="文章标题" placeholder="无标题" size="small" {...field} />
             )}
           />
-          <div id="vditor" className="vditor" />
+          <div className="canvas">
+            <NoteEditor canvasSelect={canvasSelect.current as CanvasSelect} elementId="canvas" />
+          </div>
         </div>
         <div className="preview">
           <div className={`preview-controller ${isWindows ? 'app-wrapper-padding' : ''}`}>
@@ -137,6 +198,30 @@ const Editor: React.FC = (props) => {
                   )}`
                 : '尚未保存'}
             </Typography>
+            <LoadingButton
+              component="label"
+              color="primary"
+              variant="contained"
+              loading={imageLoading}
+            >
+              <input
+                name="file"
+                type="file"
+                accept="image/*"
+                multiple={false}
+                className="input"
+                onChange={uploadImage}
+              />
+              {noteForm.watch('image') ? '更改图片' : '上传图片'}
+            </LoadingButton>
+            <Controller
+              name="desc"
+              defaultValue=""
+              control={noteForm.control}
+              render={({ field }) => (
+                <TextField label="标记内容" placeholder="标记内容" size="small" {...field} />
+              )}
+            />
             <div className="button-group">
               <Button
                 color="primary"
@@ -145,8 +230,9 @@ const Editor: React.FC = (props) => {
                 onClick={save}
                 disabled={
                   !noteForm.formState.isDirty ||
-                  !noteForm.watch('content') ||
-                  !noteForm.watch('title')
+                  !noteForm.watch('desc') ||
+                  !noteForm.watch('title') ||
+                  !noteForm.watch('image')
                 }
               >
                 保存
@@ -156,7 +242,12 @@ const Editor: React.FC = (props) => {
                 variant="contained"
                 className="action-button"
                 onClick={saveAsNew}
-                disabled={!id || !noteForm.watch('content') || !noteForm.watch('title')}
+                disabled={
+                  !id ||
+                  !noteForm.watch('desc') ||
+                  !noteForm.watch('title') ||
+                  !noteForm.watch('image')
+                }
               >
                 保存副本
               </Button>
@@ -172,12 +263,7 @@ const Editor: React.FC = (props) => {
               </Button>
             </div>
           </div>
-          <div className="preview-wrapper">
-            <NoteEditor
-              data={[]}
-              img="https://files.potatofield.cn/MediaCenter/Images/1de0a1f20bfd7577772e184fc07b91f9.webp"
-            />
-          </div>
+          <div className="preview-wrapper" />
         </div>
       </div>
     </AppWrappper>
