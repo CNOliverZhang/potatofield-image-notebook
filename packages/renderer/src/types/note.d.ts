@@ -1,4 +1,5 @@
 enum TagShape {
+  NONE = 0,
   RECT = 1,
   POLY = 2,
   DOT = 3,

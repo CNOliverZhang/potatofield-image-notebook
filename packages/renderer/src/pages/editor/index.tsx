@@ -182,8 +182,12 @@ const Editor: React.FC = (props) => {
               <TextField label="文章标题" placeholder="无标题" size="small" {...field} />
             )}
           />
-          <div className="canvas">
-            <NoteEditor canvasSelect={canvasSelect.current as CanvasSelect} elementId="canvas" />
+          <div className="canvas-container">
+            <NoteEditor
+              edit
+              canvasSelect={canvasSelect.current as CanvasSelect}
+              elementId="canvas"
+            />
           </div>
         </div>
         <div className="preview">

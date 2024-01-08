@@ -14,7 +14,7 @@ export default (theme: Theme) => ({
       flexDirection: 'column',
       padding: theme.spacing(2),
 
-      '& .canvas': {
+      '& .canvas-container': {
         height: 0,
         flexGrow: 1,
         borderRadius: theme.shape.borderRadius,
