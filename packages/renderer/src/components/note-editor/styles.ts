@@ -9,8 +9,14 @@ export default (theme: Theme) => ({
 
     '& .toolbar': {
       display: 'flex',
-      height: 60,
-      backgroundColor: theme.palette.background.paper,
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: theme.spacing(1),
+      backgroundColor: theme.palette.background.default,
+
+      '& .buttons': {
+        backgroundColor: theme.palette.background.paper,
+      },
     },
 
     '& .canvas': {

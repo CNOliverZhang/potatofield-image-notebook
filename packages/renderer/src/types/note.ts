@@ -1,4 +1,6 @@
-enum TagShape {
+import Shape from 'canvas-select/lib/shape/Shape';
+
+export enum TagShape {
   NONE = 0,
   RECT = 1,
   POLY = 2,
@@ -7,7 +9,7 @@ enum TagShape {
   CIRCLE = 5,
 }
 
-interface Tag {
+export interface Tag extends Shape {
   label: string;
   coor: number[] | number[][];
   radius?: number;
@@ -15,10 +17,10 @@ interface Tag {
   data?: string;
 }
 
-interface Note {
+export interface Note {
   id: string;
   title: string;
-  desc: string;
+  desc?: string;
   image: string;
   tags: Tag[];
   createTime: Date;

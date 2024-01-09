@@ -35,8 +35,10 @@ import { closeWindow, openWindow } from '@/utils/window';
 import { changeUrlParams } from '@/utils/url';
 import { isWindows as getIsWindows } from '@/utils/platform';
 import Storage from '@/store';
+import { Note, Tag } from '@/types/note';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { compressImage } from '@/utils/compress';
+import { CanvasExtend } from '@/types/canvas';
 import styles from './styles';
 
 const Editor: React.FC = (props) => {
@@ -50,11 +52,16 @@ const Editor: React.FC = (props) => {
   );
   const [imageLoading, setImageLoading] = useState(false);
   const [currentTag, setCurrentTag] = useState<Tag>();
-  const canvasSelect = useRef<CanvasSelect>();
+  const canvasSelectRef = useRef<CanvasExtend>();
   const idRef = useRef(id);
 
   const noteForm = useForm<Note>();
   const tagContentForm = useForm<Tag>();
+
+  const resizeCanvas = () => {
+    canvasSelectRef.current?.resize?.();
+    canvasSelectRef.current?.fitZoom();
+  };
 
   const uploadImage = async (e: ChangeEvent<HTMLInputElement>) => {
     const { files } = e.target;
@@ -151,12 +158,12 @@ const Editor: React.FC = (props) => {
   });
 
   useEffect(() => {
-    canvasSelect.current?.setImage(noteForm.getValues().image);
+    canvasSelectRef.current?.setImage(noteForm.getValues().image);
   }, [noteForm.watch('image')]);
 
   useEffect(() => {
     const canvas = new CanvasSelect('canvas');
-    canvasSelect.current = canvas;
+    canvasSelectRef.current = canvas;
     if (idRef.current) {
       const note = storage.notes.getNoteList().find((item) => item.id === idRef.current);
       if (note) {
@@ -164,8 +171,9 @@ const Editor: React.FC = (props) => {
         canvas.setData(note.tags);
       }
     }
-    canvas.on('select', (tag) => setCurrentTag(tag));
-    canvas.on('updated', (data) => noteForm.setValue('tags', data, { shouldDirty: true }));
+    canvas.on('select', (tag: Tag) => setCurrentTag(tag));
+    canvas.on('updated', (data: Tag[]) => noteForm.setValue('tags', data, { shouldDirty: true }));
+    window.addEventListener('resize', resizeCanvas);
   }, []);
 
   useEffect(() => {
@@ -191,14 +199,14 @@ const Editor: React.FC = (props) => {
           <div className="canvas-container">
             <NoteEditor
               edit
-              canvasSelect={canvasSelect.current as CanvasSelect}
+              canvasSelect={canvasSelectRef.current as CanvasSelect}
               elementId="canvas"
             />
           </div>
         </div>
-        <div className="preview">
-          <div className={`preview-controller ${isWindows ? 'app-wrapper-padding' : ''}`}>
-            <Typography variant="h4" className="preview-title" gutterBottom>
+        <div className="info">
+          <div className={`info-controller ${isWindows ? 'app-wrapper-padding' : ''}`}>
+            <Typography variant="h4" className="info-title" gutterBottom>
               {noteForm.watch('title') || '未命名'}
             </Typography>
             <Typography variant="body2" color="textSecondary" gutterBottom>
@@ -209,10 +217,12 @@ const Editor: React.FC = (props) => {
                 : '尚未保存'}
             </Typography>
             <LoadingButton
+              fullWidth
               component="label"
               color="primary"
               variant="contained"
               loading={imageLoading}
+              className="upload-button"
             >
               <input
                 name="file"
@@ -229,57 +239,31 @@ const Editor: React.FC = (props) => {
               defaultValue=""
               control={noteForm.control}
               render={({ field }) => (
-                <TextField label="笔记简介" placeholder="笔记简介" size="small" {...field} />
+                <TextField
+                  label="笔记简介"
+                  multiline
+                  rows={3}
+                  className="info-desc"
+                  placeholder="笔记简介"
+                  size="small"
+                  {...field}
+                />
               )}
             />
-            <div className="button-group">
-              <Button
-                color="primary"
-                variant="contained"
-                className="action-button"
-                onClick={save}
-                disabled={
-                  !noteForm.formState.isDirty ||
-                  !noteForm.watch('desc') ||
-                  !noteForm.watch('title') ||
-                  !noteForm.watch('image')
-                }
-              >
-                保存
-              </Button>
-              <Button
-                color="primary"
-                variant="contained"
-                className="action-button"
-                onClick={saveAsNew}
-                disabled={
-                  !id ||
-                  !noteForm.watch('desc') ||
-                  !noteForm.watch('title') ||
-                  !noteForm.watch('image')
-                }
-              >
-                保存副本
-              </Button>
-              <Button
-                color="error"
-                variant="contained"
-                className="action-button"
-                onClick={remove}
-                startIcon={<FontAwesomeIcon icon={DeleteIcon} />}
-                disabled={!id}
-              >
-                删除
-              </Button>
-            </div>
           </div>
-          <div className="preview-wrapper">
+          <div className="info-tag">
             <Controller
               name="label"
               defaultValue=""
               control={tagContentForm.control}
               render={({ field }) => (
-                <TextField label="标记主题" placeholder="标记主题" size="small" {...field} />
+                <TextField
+                  label="标记主题"
+                  fullWidth
+                  placeholder="标记主题"
+                  size="small"
+                  {...field}
+                />
               )}
             />
             <Controller
@@ -287,9 +271,41 @@ const Editor: React.FC = (props) => {
               defaultValue=""
               control={tagContentForm.control}
               render={({ field }) => (
-                <TextField label="标记内容" placeholder="标记内容" size="small" {...field} />
+                <textarea className="info-tag-textarea" {...field} placeholder="标记内容" />
               )}
             />
+          </div>
+          <div className="info-button-group">
+            <Button
+              color="primary"
+              variant="contained"
+              className="action-button"
+              onClick={save}
+              disabled={
+                !noteForm.formState.isDirty || !noteForm.watch('title') || !noteForm.watch('image')
+              }
+            >
+              保存
+            </Button>
+            <Button
+              color="primary"
+              variant="contained"
+              className="action-button"
+              onClick={saveAsNew}
+              disabled={!id || !noteForm.watch('title') || !noteForm.watch('image')}
+            >
+              保存副本
+            </Button>
+            <Button
+              color="error"
+              variant="contained"
+              className="action-button"
+              onClick={remove}
+              startIcon={<FontAwesomeIcon icon={DeleteIcon} />}
+              disabled={!id}
+            >
+              删除
+            </Button>
           </div>
         </div>
       </div>

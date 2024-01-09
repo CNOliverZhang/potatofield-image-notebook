@@ -1,4 +1,5 @@
 import Store from 'electron-store';
+import { Note } from '@/types/note';
 
 const notes = (store: Store) => {
   const setNoteList = (noteList: Note[]) => {

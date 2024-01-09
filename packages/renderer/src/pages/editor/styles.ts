@@ -1,4 +1,4 @@
-import { Theme } from '@mui/material';
+import { Theme, alpha } from '@mui/material';
 
 export default (theme: Theme) => ({
   container: {
@@ -28,7 +28,7 @@ export default (theme: Theme) => ({
       },
     },
 
-    '& .preview': {
+    '& .info': {
       width: 400,
       flexShrink: 0,
       height: '100%',
@@ -44,6 +44,21 @@ export default (theme: Theme) => ({
         '&.app-wrapper-padding': {
           paddingTop: 40,
         },
+
+        '& .upload-button': {
+          margin: `${theme.spacing(1)} 0 ${theme.spacing(2)} 0`,
+
+          '& .input': {
+            clip: 'rect(0 0 0 0)',
+            clipPath: 'inset(50%)',
+            overflow: 'hidden',
+            position: 'absolute',
+            top: 0,
+            width: '100%',
+            left: 0,
+            height: '100%',
+          },
+        },
       },
 
       '&-title': {
@@ -54,28 +69,44 @@ export default (theme: Theme) => ({
         '-webkit-box-orient': 'vertical',
       },
 
-      '&-wrapper': {
+      '&-desc': {
+        width: '100%',
+      },
+
+      '&-tag': {
         backgroundColor: theme.palette.background.paper,
         height: 0,
         flexGrow: 1,
         overflowY: 'auto',
         padding: theme.spacing(2),
+        display: 'flex',
+        flexDirection: 'column',
+
+        '&-textarea': {
+          fontFamily: 'Noto Sans SC Thin',
+          fontWeight: 400,
+          fontSize: '1rem',
+          color: theme.palette.text.primary,
+          borderRadius: theme.shape.borderRadius,
+          borderStyle: 'solid',
+          borderWidth: 1,
+          borderColor: alpha(theme.palette.text.primary, 0.23),
+          resize: 'none',
+          width: '100%',
+          marginTop: theme.spacing(2),
+          padding: `${theme.spacing(1)} ${theme.spacing(2)}`,
+          height: 0,
+          flexGrow: 1,
+
+          '&:focus-visible': {
+            outlineColor: theme.palette.primary.main,
+          },
+        },
       },
 
-      '& .input': {
-        clip: 'rect(0 0 0 0)',
-        clipPath: 'inset(50%)',
-        overflow: 'hidden',
-        position: 'absolute',
-        top: 0,
-        width: '100%',
-        left: 0,
-        height: '100%',
-      },
-
-      '& .button-group': {
-        marginTop: theme.spacing(2),
-        marginBottom: theme.spacing(2),
+      '&-button-group': {
+        padding: theme.spacing(2),
+        borderTop: `1px ${theme.palette.divider} solid`,
         display: 'flex',
 
         '&:first-child': {

@@ -11,12 +11,13 @@ import {
 import Dialog from '@/imperative-components/dialog';
 import Empty from '@/components/empty';
 import Storage from '@/store';
+import { Note } from '@/types/note';
 import { openWindow } from '@/utils/window';
 import styles from './styles';
 
 interface SelectableNoteListProps {
   noteList: Note[];
-  onSelect: (article: Note) => void;
+  onSelect: (note: Note) => void;
   selectedNote: Note | null;
 }
 

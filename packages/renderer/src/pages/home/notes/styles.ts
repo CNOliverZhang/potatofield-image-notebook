@@ -53,6 +53,7 @@ export default (theme: Theme) => ({
       },
 
       '&-content': {
+        width: '100%',
         height: 0,
         flexGrow: 1,
         overflowY: 'auto',

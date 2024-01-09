@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createUseStyles } from 'react-jss';
 import { ipcRenderer } from 'electron';
+import CanvasSelect from 'canvas-select';
 import { IconButton, TextField, Typography, useTheme } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus as AddIcon } from '@fortawesome/free-solid-svg-icons';
@@ -11,6 +12,8 @@ import NoteEditor from '@/components/note-editor';
 import { useDebounce } from '@/utils/tool';
 import { openWindow } from '@/utils/window';
 import { isWindows as getIsWindows } from '@/utils/platform';
+import { Note } from '@/types/note';
+import { CanvasExtend } from '@/types/canvas';
 import SelectableList from './selectable-note-list';
 import styles from './styles';
 
@@ -24,6 +27,7 @@ const Notes: React.FC = (props) => {
   const [keyword, setKeyword] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const selectedNoteRef = useRef<Note | null>();
+  const canvasSelectRef = useRef<CanvasExtend>();
 
   storage.notes.watchNoteList((notes) => setNoteList(notes));
 
@@ -37,6 +41,11 @@ const Notes: React.FC = (props) => {
     useDebounce((value) => setSearchKeyword(value), 500, { leading: false }),
   );
 
+  const resizeCanvas = () => {
+    canvasSelectRef.current?.resize?.();
+    canvasSelectRef.current?.fitZoom();
+  };
+
   const onListSelect = (note: Note) => {
     setSelectedNote(note);
   };
@@ -47,6 +56,18 @@ const Notes: React.FC = (props) => {
 
   useEffect(() => {
     selectedNoteRef.current = selectedNote;
+    if (canvasSelectRef.current?.ctx) {
+      canvasSelectRef.current.destroy();
+    }
+    canvasSelectRef.current = new CanvasSelect('#canvas');
+    if (selectedNote && canvasSelectRef.current) {
+      canvasSelectRef.current.setData(selectedNote.tags);
+      canvasSelectRef.current.setImage(selectedNote.image);
+      resizeCanvas();
+      canvasSelectRef.current.readonly = true;
+      canvasSelectRef.current.update();
+    }
+    window.addEventListener('resize', resizeCanvas);
   }, [selectedNote]);
 
   useEffect(() => {
@@ -82,10 +103,7 @@ const Notes: React.FC = (props) => {
             </Typography>
           </div>
           <div className="note-preview-content">
-            <NoteEditor
-              data={[]}
-              img="https://files.potatofield.cn/MediaCenter/Images/1de0a1f20bfd7577772e184fc07b91f9.webp"
-            />
+            <NoteEditor elementId="canvas" canvasSelect={canvasSelectRef.current as CanvasSelect} />
           </div>
         </div>
       ) : (
