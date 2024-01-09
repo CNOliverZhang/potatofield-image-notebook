@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createUseStyles } from 'react-jss';
-import { Button, useTheme } from '@mui/material';
+import { Button, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
 import CanvasSelect from 'canvas-select';
 
 import { useThrottle } from '@/utils/tool';
@@ -18,9 +18,7 @@ const Editor: React.FC<NoteEditor> = (props) => {
   const storage = Storage();
   const theme = useTheme();
   const classes = createUseStyles(styles)({ theme });
-
-  const [styleSheet, setStyleSheet] = useState('');
-  const canvasSelect = useRef<CanvasSelect>();
+  const [createType, setCreateType] = useState<TagShape>(0);
 
   const changeMode = (mode: TagShape) => {
     props.canvasSelect.createType = mode;
@@ -29,7 +27,10 @@ const Editor: React.FC<NoteEditor> = (props) => {
 
   useEffect(() => {
     if (props.canvasSelect) {
-      props.canvasSelect.createType = 1;
+      props.canvasSelect.createType = 0;
+      props.canvasSelect?.on('updated', () => {
+        setCreateType(props.canvasSelect.createType);
+      });
     }
   }, [props.canvasSelect]);
 
@@ -37,12 +38,30 @@ const Editor: React.FC<NoteEditor> = (props) => {
     <div className={classes.container}>
       {props.edit && (
         <div className="toolbar">
-          <Button onClick={() => changeMode(0)}>选择和拖拽</Button>
-          <Button onClick={() => changeMode(1)}>添加矩形</Button>
-          <Button onClick={() => changeMode(2)}>添加多边形</Button>
-          <Button onClick={() => changeMode(3)}>添加点</Button>
-          <Button onClick={() => changeMode(4)}>添加折线</Button>
-          <Button onClick={() => changeMode(5)}>添加圆形</Button>
+          <ToggleButtonGroup
+            exclusive
+            value={createType}
+            onChange={(e, value) => changeMode(value)}
+          >
+            <ToggleButton size="small" value={0}>
+              选择和拖拽
+            </ToggleButton>
+            <ToggleButton size="small" value={1}>
+              添加矩形
+            </ToggleButton>
+            <ToggleButton size="small" value={2}>
+              添加多边形
+            </ToggleButton>
+            <ToggleButton size="small" value={3}>
+              添加点
+            </ToggleButton>
+            <ToggleButton size="small" value={4}>
+              添加折线
+            </ToggleButton>
+            <ToggleButton size="small" value={5}>
+              添加圆形
+            </ToggleButton>
+          </ToggleButtonGroup>
         </div>
       )}
       <canvas id={props.elementId} className="canvas" />

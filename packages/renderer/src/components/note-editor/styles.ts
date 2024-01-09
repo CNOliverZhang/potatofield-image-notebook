@@ -7,8 +7,10 @@ export default (theme: Theme) => ({
     display: 'flex',
     flexDirection: 'column',
 
-    '& .toolbat': {
+    '& .toolbar': {
       display: 'flex',
+      height: 60,
+      backgroundColor: theme.palette.background.paper,
     },
 
     '& .canvas': {
