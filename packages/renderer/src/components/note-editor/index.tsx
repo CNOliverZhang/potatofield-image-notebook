@@ -1,12 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createUseStyles } from 'react-jss';
-import { Button, ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material';
+import { ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material';
 import CanvasSelect from 'canvas-select';
 
-import { useThrottle } from '@/utils/tool';
-import Storage from '@/store';
 import { TagShape } from '@/types/note';
-import axios from 'axios';
 import styles from './styles';
 
 interface NoteEditor {
@@ -25,7 +22,6 @@ const EditorToolTip = {
 };
 
 const Editor: React.FC<NoteEditor> = (props) => {
-  const storage = Storage();
   const theme = useTheme();
   const classes = createUseStyles(styles)({ theme });
   const [createType, setCreateType] = useState<TagShape>(TagShape.NONE);
@@ -78,9 +74,11 @@ const Editor: React.FC<NoteEditor> = (props) => {
         </div>
       )}
       <canvas id={props.elementId} className="canvas" />
-      <div className="toolbar">
-        <Typography variant="body1">{EditorToolTip[createType]}</Typography>
-      </div>
+      {props.edit && (
+        <div className="toolbar">
+          <Typography variant="body1">{EditorToolTip[createType]}</Typography>
+        </div>
+      )}
     </div>
   );
 };

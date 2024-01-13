@@ -1,42 +1,27 @@
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 import moment from 'moment';
 import fs from 'fs';
-import { clipboard, ipcRenderer } from 'electron';
 import { createUseStyles } from 'react-jss';
 import { Controller, useForm } from 'react-hook-form';
 import { v4 as uuid } from 'uuid';
 import CanvasSelect from 'canvas-select';
-import {
-  Button,
-  ListItemIcon,
-  MenuItem,
-  MenuList,
-  TextField,
-  Typography,
-  useTheme,
-} from '@mui/material';
+import { Button, TextField, Typography, useTheme } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faTrashCan as DeleteIcon,
-  faCopy as CopyIcon,
-  faFilePdf as PdfIcon,
-  faImage as ImageIcon,
-} from '@fortawesome/free-solid-svg-icons';
+import { faTrashCan as DeleteIcon } from '@fortawesome/free-solid-svg-icons';
+import { PhotoProvider, PhotoView } from 'react-photo-view';
 
-import useThemeContext from '@/contexts/theme';
 import AppWrappper from '@/components/app-wrappper';
 import NoteEditor from '@/components/note-editor';
+import Empty from '@/components/empty';
 import Message from '@/imperative-components/message';
 import Dialog from '@/imperative-components/dialog';
-import Loading from '@/imperative-components/loading';
 import Upload from '@/utils/upload';
 import { closeWindow, openWindow } from '@/utils/window';
 import { changeUrlParams } from '@/utils/url';
 import { isWindows as getIsWindows } from '@/utils/platform';
 import Storage from '@/store';
 import { Note, Tag } from '@/types/note';
-import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { compressImage } from '@/utils/compress';
 import { CanvasExtend } from '@/types/canvas';
 import styles from './styles';
@@ -50,7 +35,8 @@ const Editor: React.FC = (props) => {
   const [id, setId] = useState(
     new URLSearchParams(window.location.hash.split('?').pop()).get('id'),
   );
-  const [imageLoading, setImageLoading] = useState(false);
+  const [noteImageLoading, setNoteImageLoading] = useState(false);
+  const [galleryImageLoading, setGalleryImageLoading] = useState(false);
   const [currentTag, setCurrentTag] = useState<Tag>();
   const canvasSelectRef = useRef<CanvasExtend>();
   const idRef = useRef(id);
@@ -63,46 +49,72 @@ const Editor: React.FC = (props) => {
     canvasSelectRef.current?.fitZoom();
   };
 
-  const uploadImage = async (e: ChangeEvent<HTMLInputElement>) => {
+  const uploadImage = async (files: FileList) => {
+    let filepath = files[0].path;
+    if (storage.settings.getUploadCompress()) {
+      filepath = await compressImage(filepath, storage.settings.getUploadCompressQuality());
+    }
+    const uploadConfig = storage.settings.getUploadTarget();
+    if (!uploadConfig) {
+      new Dialog({
+        title: '上传失败',
+        content: '未填写图片上传配置，请前往设置页面填写。',
+        showCancel: false,
+        onConfirm: () => {
+          openWindow({
+            title: '设置',
+            path: '/settings',
+            width: 600,
+            height: 400,
+            resizable: false,
+          });
+        },
+      });
+    }
+    const uploadFunction = Upload[storage.settings.getUploadTarget()].upload;
+    try {
+      const url = await uploadFunction(filepath);
+      return Promise.resolve(url);
+    } catch (err) {
+      new Dialog({
+        title: '上传失败',
+        content: (err as Error).message,
+        showCancel: false,
+      });
+      return Promise.reject();
+    } finally {
+      if (filepath !== files[0].path) {
+        fs.rmSync(filepath);
+      }
+    }
+  };
+
+  const setNoteImgae = async (e: ChangeEvent<HTMLInputElement>) => {
     const { files } = e.target;
     if (files) {
-      let filepath = files[0].path;
-      if (storage.settings.getUploadCompress()) {
-        filepath = await compressImage(filepath, storage.settings.getUploadCompressQuality());
-      }
-      const uploadConfig = storage.settings.getUploadTarget();
-      if (!uploadConfig) {
-        new Dialog({
-          title: '上传失败',
-          content: '未填写图片上传配置，请前往设置页面填写。',
-          showCancel: false,
-          onConfirm: () => {
-            openWindow({
-              title: '设置',
-              path: '/settings',
-              width: 600,
-              height: 400,
-              resizable: false,
-            });
-          },
-        });
-      }
-      setImageLoading(true);
-      const uploadFunction = Upload[storage.settings.getUploadTarget()].upload;
+      setNoteImageLoading(true);
       try {
-        const url = await uploadFunction(filepath);
+        const url = await uploadImage(files);
         noteForm.setValue('image', url, { shouldDirty: true });
-      } catch (err) {
-        new Dialog({
-          title: '上传失败',
-          content: (err as Error).message,
-          showCancel: false,
-        });
+      } catch {
       } finally {
-        if (filepath !== files[0].path) {
-          fs.rmSync(filepath);
-        }
-        setImageLoading(false);
+        setNoteImageLoading(false);
+      }
+    }
+  };
+
+  const addImageToTag = async (e: ChangeEvent<HTMLInputElement>) => {
+    const { files } = e.target;
+    if (files) {
+      setGalleryImageLoading(true);
+      try {
+        const url = await uploadImage(files);
+        tagContentForm.setValue('images', [...(tagContentForm.getValues('images') || []), url], {
+          shouldDirty: true,
+        });
+      } catch {
+      } finally {
+        setGalleryImageLoading(false);
       }
     }
   };
@@ -221,7 +233,7 @@ const Editor: React.FC = (props) => {
               component="label"
               color="primary"
               variant="contained"
-              loading={imageLoading}
+              loading={noteImageLoading}
               className="upload-button"
             >
               <input
@@ -230,7 +242,7 @@ const Editor: React.FC = (props) => {
                 accept="image/*"
                 multiple={false}
                 className="input"
-                onChange={uploadImage}
+                onChange={setNoteImgae}
               />
               {noteForm.watch('image') ? '更改图片' : '上传图片'}
             </LoadingButton>
@@ -252,28 +264,72 @@ const Editor: React.FC = (props) => {
             />
           </div>
           <div className="info-tag">
-            <Controller
-              name="label"
-              defaultValue=""
-              control={tagContentForm.control}
-              render={({ field }) => (
-                <TextField
-                  label="标记主题"
-                  fullWidth
-                  placeholder="标记主题"
-                  size="small"
-                  {...field}
+            {currentTag ? (
+              <>
+                <Typography variant="h6" gutterBottom>
+                  正在编辑的标记
+                </Typography>
+                <Controller
+                  name="label"
+                  defaultValue=""
+                  control={tagContentForm.control}
+                  render={({ field }) => (
+                    <TextField
+                      label="标记主题"
+                      fullWidth
+                      placeholder="标记主题"
+                      size="small"
+                      {...field}
+                    />
+                  )}
                 />
-              )}
-            />
-            <Controller
-              name="data"
-              defaultValue=""
-              control={tagContentForm.control}
-              render={({ field }) => (
-                <textarea className="info-tag-textarea" {...field} placeholder="标记内容" />
-              )}
-            />
+                <Controller
+                  name="data"
+                  defaultValue=""
+                  control={tagContentForm.control}
+                  render={({ field }) => (
+                    <textarea className="info-tag-textarea" {...field} placeholder="标记内容" />
+                  )}
+                />
+                <Typography variant="h6" gutterBottom>
+                  标记包含的图片
+                </Typography>
+                <div className="info-tag-gallery">
+                  <div className="info-tag-gallery-inner">
+                    <LoadingButton
+                      component="label"
+                      color="primary"
+                      variant="contained"
+                      className="info-tag-gallery-button"
+                      loading={galleryImageLoading}
+                    >
+                      <input
+                        name="file"
+                        type="file"
+                        accept="image/*"
+                        multiple={false}
+                        className="input"
+                        onChange={addImageToTag}
+                      />
+                      上传图片
+                    </LoadingButton>
+                    <PhotoProvider>
+                      {(tagContentForm.watch('images') || []).map((url, index) => (
+                        // <div
+                        //   className="info-tag-gallery-item"
+                        //   style={{ backgroundImage: `url(${url})` }}
+                        // />
+                        <PhotoView key={url} src={url}>
+                          <img src={url} className="info-tag-gallery-item" alt="" />
+                        </PhotoView>
+                      ))}
+                    </PhotoProvider>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <Empty description="暂未选中标记" />
+            )}
           </div>
           <div className="info-button-group">
             <Button

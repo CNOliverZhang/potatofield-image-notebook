@@ -102,6 +102,47 @@ export default (theme: Theme) => ({
             outlineColor: theme.palette.primary.main,
           },
         },
+
+        '&-gallery': {
+          height: 120,
+          borderRadius: theme.shape.borderRadius,
+          overflow: 'auto',
+          backgroundColor: theme.palette.text.secondary,
+          display: 'flex',
+
+          '&-inner': {
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            overflow: 'auto',
+            padding: theme.spacing(1),
+          },
+
+          '&-item': {
+            width: 100,
+            height: '100%',
+            borderRadius: theme.shape.borderRadius,
+            objectFit: 'cover',
+            flexShrink: 0,
+            marginLeft: theme.spacing(1),
+          },
+
+          '&-button': {
+            height: '100%',
+            flexShrink: 0,
+
+            '& .input': {
+              clip: 'rect(0 0 0 0)',
+              clipPath: 'inset(50%)',
+              overflow: 'hidden',
+              position: 'absolute',
+              top: 0,
+              width: '100%',
+              left: 0,
+              height: '100%',
+            },
+          },
+        },
       },
 
       '&-button-group': {

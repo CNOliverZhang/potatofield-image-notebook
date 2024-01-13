@@ -15,6 +15,7 @@ export interface Tag extends Shape {
   radius?: number;
   type: TagShape;
   data?: string;
+  images?: string[];
 }
 
 export interface Note {

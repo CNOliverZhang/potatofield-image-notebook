@@ -31,6 +31,7 @@ module.exports = {
   rules: {
     'no-new': 'off',
     'no-shadow': 'off',
+    'no-empty': 'off',
     'no-unused-vars': 'off',
     'no-constructor-return': 'off',
     'no-template-curly-in-string': 'off',
